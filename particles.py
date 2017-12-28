@@ -6,10 +6,13 @@ import sys
 # import webserver
 from pyledstrip import LedStrip
 
-strip = LedStrip(power_limit=0.2)
+#strip = LedStrip(power_limit=0.2)
+strip = LedStrip(power_limit=0.2, ip='127.0.0.1')
 
 __LED_PER_METER = 60
 __LED_DIST = 1 / __LED_PER_METER
+
+Particle = collections.namedtuple('Particle', ['pos', 'v', 'hue', 'ttl'])
 
 
 def get_metric(nodes):
@@ -75,7 +78,7 @@ def main():
 	nodes = collections.OrderedDict(sorted(node_dict.items()))
 	nodes = get_metric(nodes)
 
-	particles = [(300, 0, 60, 15)]
+	particles = [Particle(300, 0, 60, 15)]
 
 	last_time = time.perf_counter()
 
@@ -92,14 +95,14 @@ def main():
 
 		# create particle
 		if random.randrange(0, 50) < 1:
-			particles.append((300, random.randrange(0, 200) / 100, random.randrange(0, 360), 15))
+			particles.append(Particle(300, random.randrange(0, 200) / 100, random.randrange(0, 360), 15))
 		web_particles = []  # webserver.step()
 		for web_particle in web_particles:
-			if web_particle[0] is not None and web_particle[1] is not None:
+			if web_particle.pos is not None and web_particle.v is not None:
 				if web_particle[2]:
-					particles.append((300, web_particle[1] * 2, web_particle[0], 15))
+					particles.append(Particle(300, web_particle.v * 2, web_particle.pos, 15))
 				else:
-					particles.append((1, -web_particle[1] * 2, web_particle[0], 15))
+					particles.append(Particle(1, -web_particle.v * 2, web_particle.pos, 15))
 
 		now = time.perf_counter()
 		for i, particle in enumerate(particles):
@@ -110,7 +113,7 @@ def main():
 			for key in nodes.keys():
 				prev_key = next_key
 				next_key = key
-				if next_key >= particle[0] > prev_key:
+				if next_key >= particle.pos > prev_key:
 					height = (nodes[next_key][1] - nodes[prev_key][1])
 					radius = abs(prev_key - next_key) * __LED_DIST
 					break
@@ -127,16 +130,16 @@ def main():
 				a = a + 0.088 * 9.81 * math.cos(math.asin(max(min(height / radius, 1), -1)))
 			t = now - last_time
 
-			v = particle[1] + a * t
+			v = particle.v + a * t
 			# v = v - v * 0.05 * t
 
-			new_pos = particle[0] - (v * t) * __LED_PER_METER
+			new_pos = particle.pos - (v * t) * __LED_PER_METER
 
-			if not 300 >= new_pos >= 0 or particle[3] <= 0:
+			if not 300 >= new_pos >= 0 or particle.hue <= 0:
 				del particles[i]
 			else:
 				strip.add_hsv(new_pos, particle[2] / 360, 1, particle[3] / 3)
-				particles[i] = (new_pos, v, particle[2], particle[3] - t)
+				particles[i] = Particle(new_pos, v, particle[2], particle[3] - t)
 
 		last_time = now
 		strip.transmit()
