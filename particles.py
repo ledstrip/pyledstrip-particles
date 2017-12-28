@@ -12,6 +12,8 @@ __LED_PER_METER = 60
 __LED_DIST = 1 / __LED_PER_METER
 __DEFAULT_TTL = 2
 
+Particle = collections.namedtuple('Particle', ['pos', 'v', 'hue', 'ttl'])
+
 
 def get_metric_nodes(nodes):
 	y_values = [value[1] for value in nodes.values()]
@@ -124,7 +126,7 @@ def main():
 	nodes = get_metric_nodes(nodes)
 
 	# initialize particles with one particle
-	particles = [(300, 1, 60, __DEFAULT_TTL)]
+	particles = [Particle(300, 1, 60, __DEFAULT_TTL)]
 
 	last_time = time.perf_counter()
 
@@ -142,16 +144,16 @@ def main():
 		# create particle
 		spawn = random.randrange(0, 300)
 		if spawn <= 0:
-			particles.append((0, random.randrange(-150, -5) / 100, random.randrange(0, 360), __DEFAULT_TTL))
+			particles.append(Particle(0, random.randrange(-150, -5) / 100, random.randrange(0, 360), __DEFAULT_TTL))
 		elif spawn >= 300:
-			particles.append((300, random.randrange(5, 150) / 100, random.randrange(0, 360), __DEFAULT_TTL))
+			particles.append(Particle(300, random.randrange(5, 150) / 100, random.randrange(0, 360), __DEFAULT_TTL))
 		web_particles = []  # webserver.step()
 		for web_particle in web_particles:
 			if web_particle[0] is not None and web_particle[1] is not None:
 				if web_particle[2]:
-					particles.append((300, web_particle[1] * 2, web_particle[0], __DEFAULT_TTL))
+					particles.append(Particle(300, web_particle[1] * 2, web_particle[0], __DEFAULT_TTL))
 				else:
-					particles.append((1, -web_particle[1] * 2, web_particle[0], __DEFAULT_TTL))
+					particles.append(Particle(1, -web_particle[1] * 2, web_particle[0], __DEFAULT_TTL))
 
 		now = time.perf_counter()
 		for i, particle in enumerate(particles):
@@ -162,7 +164,7 @@ def main():
 			for key in nodes.keys():
 				prev_key = next_key
 				next_key = key
-				if next_key >= particle[0] > prev_key:
+				if next_key >= particle.pos > prev_key:
 					height = (nodes[next_key][1] - nodes[prev_key][1])
 					radius = abs(prev_key - next_key) * __LED_DIST
 					break
@@ -175,20 +177,19 @@ def main():
 
 			a = a_slope - a_friction
 			t = now - last_time
-			v = particle[1] + a * t
+			v = particle.v + a * t
 
-			new_pos = particle[0] - (v * t) * __LED_PER_METER
+			new_pos = particle.pos - (v * t) * __LED_PER_METER
 
-			if not 300 >= new_pos >= 0 or particle[3] <= 0:
+			if not 300 >= new_pos >= 0 or particle.hue <= 0:
 				del particles[i]
 			else:
-				# strip.add_hsv(new_pos, particle[2] / 360, 1, particle[3] / 3)
 				strip.add_hsv(new_pos, min(math.pow(abs(v) / 2, 2), 0.9), 1,
-							  max(math.pow(abs(v) / 2, 2), 0.1) * min(particle[3] / 3, 1))
+							  max(math.pow(abs(v) / 2, 2), 0.1) * min(particle.ttl / 3, 1))
 				if abs(v) < 0.1:
-					particles[i] = (new_pos, v, particle[2], particle[3] - t)
+					particles[i] = Particle(new_pos, v, particle.hue, particle.ttl - t)
 				else:
-					particles[i] = (new_pos, v, particle[2], __DEFAULT_TTL)
+					particles[i] = Particle(new_pos, v, particle.hue, __DEFAULT_TTL)
 
 		last_time = now
 		strip.transmit()
