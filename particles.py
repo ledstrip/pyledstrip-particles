@@ -99,7 +99,7 @@ def main():
 		web_particles = []  # webserver.step()
 		for web_particle in web_particles:
 			if web_particle.pos is not None and web_particle.v is not None:
-				if web_particle[2]:
+				if web_particle.hue:
 					particles.append(Particle(300, web_particle.v * 2, web_particle.pos, 15))
 				else:
 					particles.append(Particle(1, -web_particle.v * 2, web_particle.pos, 15))
@@ -138,8 +138,8 @@ def main():
 			if not 300 >= new_pos >= 0 or particle.hue <= 0:
 				del particles[i]
 			else:
-				strip.add_hsv(new_pos, particle[2] / 360, 1, particle[3] / 3)
-				particles[i] = Particle(new_pos, v, particle[2], particle[3] - t)
+				strip.add_hsv(new_pos, particle.hue / 360, 1, particle.ttl / 3)
+				particles[i] = Particle(new_pos, v, particle.hue, particle.ttl - t)
 
 		last_time = now
 		strip.transmit()
