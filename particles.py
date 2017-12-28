@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import time
 import collections
 import math
@@ -6,8 +7,6 @@ import random
 import sys
 # import webserver
 from pyledstrip import LedStrip
-
-strip = LedStrip(power_limit=0.2)
 
 __LED_PER_METER = 60
 __LED_DIST = 1 / __LED_PER_METER
@@ -64,7 +63,9 @@ def collide(a, b):
 	b.v = (b.mass * v2 + a.mass * (2*v1 - v2))/(a.mass + b.mass)
 
 
-def main():
+def main(args):
+	strip = LedStrip(args=args)
+
 	node_dict = {
 		0: (200.0, 33.25), 1: (199.75, 31.25), 2: (198.875, 29.5), 3: (197.5, 29.0), 4: (195.375, 29.0),
 		5: (192.375, 29.75), 6: (189.5, 32.0), 7: (187.625, 35.0), 8: (188.5, 38.75), 9: (191.5, 43.25),
@@ -234,4 +235,6 @@ def main():
 
 
 if __name__ == '__main__':
-	main()
+	parser = argparse.ArgumentParser(description='Gravity-based LED particle simulation')
+	LedStrip.add_arguments(parser)
+	main(parser.parse_args())
