@@ -12,8 +12,20 @@ __LED_PER_METER = 60
 __LED_DIST = 1 / __LED_PER_METER
 __DEFAULT_TTL = 2
 
-Particle = collections.namedtuple('Particle', ['pos', 'v', 'hue', 'ttl'])
 
+class Particle:
+	pos = None
+	v = None
+	hue = None
+	ttl = None
+	mass = None
+
+	def __init__(self, pos, v, hue, ttl, mass):
+		self.pos = pos
+		self.v = v
+		self.hue = hue
+		self.ttl = ttl
+		self.mass = mass
 
 def get_metric_nodes(nodes):
 	y_values = [value[1] for value in nodes.values()]
@@ -35,6 +47,20 @@ def get_metric_nodes(nodes):
 		nodes[key] = (nodes[key][0] * f, (y_max - y_values[i]) * f)
 		i = i + 1
 	return nodes
+
+
+def within(a, b, tolerance=1.0):
+	if not abs(a.pos - b.pos) < tolerance:
+		return False
+	return math.copysign(1, a.v) != math.copysign(1, b.v)
+
+
+def collide(a, b):
+	# v1' = (m1*v1 + m2 * (2*v2 - v1)) / (m1 + m2)
+	# v2' = (m2*v2 + m1 * (2*v1 - v2)) / (m1 + m2)
+	v1, v2 = a.v, b.v
+	a.v = (a.mass * v1 + b.mass * (2*v2 - v1))/(a.mass + b.mass)
+	b.v = (b.mass * v2 + a.mass * (2*v1 - v2))/(a.mass + b.mass)
 
 
 def main():
@@ -126,7 +152,7 @@ def main():
 	nodes = get_metric_nodes(nodes)
 
 	# initialize particles with one particle
-	particles = [Particle(300, 1, 60, __DEFAULT_TTL)]
+	particles = [Particle(300, 1, 60, __DEFAULT_TTL, 1)]
 
 	last_time = time.perf_counter()
 
@@ -144,21 +170,31 @@ def main():
 		# create particle
 		spawn = random.randrange(0, 300)
 		if spawn <= 0:
-			particles.append(Particle(0, random.randrange(-150, -5) / 100, random.randrange(0, 360), __DEFAULT_TTL))
+			particles.append(Particle(0, random.randrange(-150, -5) / 100, random.randrange(0, 360), __DEFAULT_TTL, 1))
 		elif spawn >= 300:
-			particles.append(Particle(300, random.randrange(5, 150) / 100, random.randrange(0, 360), __DEFAULT_TTL))
+			particles.append(Particle(300, random.randrange(5, 150) / 100, random.randrange(0, 360), __DEFAULT_TTL, 1))
 		web_particles = []  # webserver.step()
 		for web_particle in web_particles:
 			if web_particle[0] is not None and web_particle[1] is not None:
 				if web_particle[2]:
-					particles.append(Particle(300, web_particle[1] * 2, web_particle[0], __DEFAULT_TTL))
+					particles.append(Particle(300, web_particle[1] * 2, web_particle[0], __DEFAULT_TTL, 1))
 				else:
-					particles.append(Particle(1, -web_particle[1] * 2, web_particle[0], __DEFAULT_TTL))
+					particles.append(Particle(1, -web_particle[1] * 2, web_particle[0], __DEFAULT_TTL, 1))
 
 		now = time.perf_counter()
+		particles = sorted(particles, key=lambda p: p.pos)
 		for i, particle in enumerate(particles):
 			radius = 0
 			height = 0
+
+			# Collision detection
+			if i > 0 and i < (len(particles) - 1):
+				left = particles[i-1]
+				right = particles[i+1]
+				if within(left, particle):
+					collide(left, particle)
+				if within(right, particle):
+					collide(particle, right)
 
 			next_key = next(iter(nodes.keys()))
 			for key in nodes.keys():
@@ -173,7 +209,7 @@ def main():
 				radius = 0.00001
 
 			a_slope = (9.81 * max(min(height / radius, 1), -1)) if radius is not 0 else 0
-			a_friction = math.copysign(0.02 * 9.81 * math.cos(math.asin(max(min(height / radius, 1), -1))), particle[1])
+			a_friction = math.copysign(0.02 * 9.81 * math.cos(math.asin(max(min(height / radius, 1), -1))), particle.v)
 
 			a = a_slope - a_friction
 			t = now - last_time
@@ -187,9 +223,9 @@ def main():
 				strip.add_hsv(new_pos, min(math.pow(abs(v) / 2, 2), 0.9), 1,
 							  max(math.pow(abs(v) / 2, 2), 0.1) * min(particle.ttl / 3, 1))
 				if abs(v) < 0.1:
-					particles[i] = Particle(new_pos, v, particle.hue, particle.ttl - t)
+					particles[i] = Particle(new_pos, v, particle.hue, particle.ttl - t, particle.mass)
 				else:
-					particles[i] = Particle(new_pos, v, particle.hue, __DEFAULT_TTL)
+					particles[i] = Particle(new_pos, v, particle.hue, __DEFAULT_TTL, particle.mass)
 
 		last_time = now
 		strip.transmit()
