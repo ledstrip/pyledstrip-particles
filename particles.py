@@ -159,7 +159,7 @@ def main(args):
 	nodes = get_metric_nodes(nodes)
 
 	# initialize particles with one particle
-	particles = [Particle(300, 1, 60, __DEFAULT_TTL, 1)]
+	particles = [Particle(300, 1, 0.4, __DEFAULT_TTL, 1)]
 
 	last_time = time.perf_counter()
 
@@ -232,7 +232,7 @@ def main(args):
 
 			new_pos = particle.pos - (v * t) * __LED_PER_METER
 
-			if not 300 >= new_pos >= 0 or particle.hue <= 0:
+			if not 300 >= new_pos >= 0 or particle.ttl <= 0:
 				del particles[i]
 			else:
 				strip.add_hsv(new_pos, #min(math.pow(abs(v) / 2, 2), 0.9), 1,

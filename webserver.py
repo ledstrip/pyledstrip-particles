@@ -31,7 +31,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 			ctype, pdict = cgi.parse_header(self.headers["content-type"])
 			if ctype == "application/json":
 				content = json.loads(self.rfile.read(int(self.headers["content-length"])).decode("utf-8"))
-				launches.append((content["hue"], content["velocity"], content["direction"]))
+				launches.append((content["hue"] / 360, content["velocity"], content["direction"]))
 		else:
 			self.send_file(404, "web/404.html")
 
