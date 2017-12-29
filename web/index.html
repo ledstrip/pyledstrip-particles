@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width">
+	<title>Launcher</title>
+	<style>
+		* {
+			margin: 0;
+			padding: 0;
+		}
+		html, body {
+			height: 100%;
+		}
+		body {
+			display: flex;
+			flex-direction: column;
+		}
+		#launcher {
+			flex: 10;
+			display: flex;
+			flex-direction: column;
+			background-color: hsl(0, 100%, 50%);
+			color: white;
+			text-align: center;
+			padding-top: 2em;
+			text-shadow: 2px 2px #000;
+		}
+		#color {
+			flex: 1;
+			background: linear-gradient(to right, #f00 0%, #ff0 15%, #0f0 30%, #0ff 50%, #00f 65%, #f0f 80%, #f00 100%);
+		}
+		#overlay {
+			display: none;
+			position: absolute;
+			left: 0;
+			top: 0;
+			right: 0;
+			bottom: 0;
+			background-color: white;
+			opacity: 1;
+			-webkit-transition: opacity 500ms;
+			pointer-events: none;
+		}
+	</style>
+</head>
+<body>
+	<div id="launcher">Swipe to launch</div>
+	<div id="color"></div>
+	<div id="overlay"></div>
+	<script>
+		var color = document.getElementById("color");
+		var launcher = document.getElementById("launcher");
+		var overlay = document.getElementById("overlay");
+		var d = 0;
+		var start = [], end = [];
+		var stime, etime;
+		var hue = 0;
+		var timer;
+		function launch(velocity, direction) {
+			var xhr = new XMLHttpRequest();
+			xhr.open("POST", "/launch");
+			xhr.setRequestHeader("Content-Type", "application/json");
+			xhr.send(JSON.stringify({velocity: velocity, hue: hue, direction: direction}));
+
+			if (timer) {
+				clearTimeout(timer);
+				overlay.style.display = 'none';
+				overlay.offsetHeight; // Refresh DOM
+			}
+			overlay.style.display = 'block';
+			overlay.style.opacity = '1';
+			overlay.offsetHeight; // Refresh DOM
+			overlay.style.opacity = '0';
+
+			timer = setTimeout(function() {
+				overlay.style.display = 'none';
+			}, 500);
+
+			if ("vibrate" in navigator) {
+				navigator.vibrate(100);
+			}
+		}
+		color.addEventListener("touchstart", function(ev) {
+			d = 1;
+			ev.preventDefault();
+		});
+		color.addEventListener("touchmove", function(ev) {
+			if (d) {
+				launcher.style.backgroundColor = 'hsl(' + (hue = ev.touches[0].clientX / document.getElementById("color").offsetWidth * 360) + ', 100%, 50%)';
+			}
+			ev.preventDefault();
+		});
+		color.addEventListener("touchend", function(ev) {
+			d = 0;
+			ev.preventDefault();
+		});
+		launcher.addEventListener("touchstart", function(ev) {
+			start = [ev.touches[0].clientX, ev.touches[0].clientY];
+			stime = Date.now();
+			ev.preventDefault();
+		});
+		launcher.addEventListener("touchmove", function(ev) {
+			end = [ev.touches[0].clientX, ev.touches[0].clientY];
+			etime = Date.now();
+			ev.preventDefault();
+		});
+		launcher.addEventListener("touchend", function(ev) {
+			launch(Math.sqrt((end[0] - start[0]) * (end[0] - start[0]) + (end[1] - start[1]) * (end[1] - start[1])) / (etime - stime), end[1] > start[1]);
+			ev.preventDefault();
+		});
+		color.addEventListener("mousedown", function(ev) {
+			d = 1;
+			ev.preventDefault();
+		});
+		color.addEventListener("mousemove", function(ev) {
+			if (d) {
+				launcher.style.backgroundColor = 'hsl(' + (hue = ev.clientX / document.getElementById("color").offsetWidth * 360) + ', 100%, 50%)';
+			}
+			ev.preventDefault();
+		});
+		color.addEventListener("mouseup", function(ev) {
+			d = 0;
+			ev.preventDefault();
+		});
+		launcher.addEventListener("mousedown", function(ev) {
+			start = [ev.clientX, ev.clientY];
+			stime = Date.now();
+			ev.preventDefault();
+		});
+		launcher.addEventListener("mousemove", function(ev) {
+			end = [ev.clientX, ev.clientY];
+			etime = Date.now();
+			ev.preventDefault();
+		});
+		launcher.addEventListener("mouseup", function(ev) {
+			launch(Math.sqrt((end[0] - start[0]) * (end[0] - start[0]) + (end[1] - start[1]) * (end[1] - start[1])) / (etime - stime), end[1] > start[1]);
+			ev.preventDefault();
+		});
+	</script>
+</body>
+</html>

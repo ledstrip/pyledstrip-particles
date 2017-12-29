@@ -5,7 +5,7 @@ import collections
 import math
 import random
 import sys
-# import webserver
+import webserver
 from pyledstrip import LedStrip
 
 __LED_PER_METER = 60
@@ -307,7 +307,7 @@ def main(args):
 		spawn = random.randrange(0, 50)
 		if spawn == 0:
 			particles.append(Particle(150, random.randrange(-150, -5) / 100, random.random(), __DEFAULT_TTL, random.randrange(1, 4)))
-		web_particles = []  # webserver.step()
+		web_particles = webserver.step()
 		for web_particle in web_particles:
 			if web_particle[0] is not None and web_particle[1] is not None:
 				if web_particle[2]:
