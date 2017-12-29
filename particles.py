@@ -235,9 +235,9 @@ def main(args):
 			if not 300 >= new_pos >= 0 or particle.ttl <= 0:
 				del particles[i]
 			else:
-				strip.add_hsv(new_pos, #min(math.pow(abs(v) / 2, 2), 0.9), 1,
-						particle.hue, 1,
-							  max(math.pow(abs(v) / 2, 2), 0.1) * min(particle.ttl / 3, 1))
+				velocity_based_hue = min(math.pow(abs(v) / 2, 2), 0.9)
+				velocity_based_brightness = max(math.pow(abs(v) / 2, 2), 0.1) * min(particle.ttl / 3, 1)
+				strip.add_hsv(new_pos, particle.hue, 1, velocity_based_brightness)
 				if abs(v) < 0.1:
 					new_ttl = particle.ttl - t
 					particles[i] = Particle(pos=new_pos, v=v, hue=particle.hue, ttl=new_ttl, mass=particle.mass)
