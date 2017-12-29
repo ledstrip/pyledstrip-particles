@@ -19,13 +19,15 @@ class Particle:
 	hue = None
 	ttl = None
 	mass = None
+	width = None
 
-	def __init__(self, pos, v, hue, ttl, mass):
+	def __init__(self, pos, v, hue):
 		self.pos = pos
 		self.v = v
 		self.hue = hue
 		self.ttl = ttl
 		self.mass = mass
+		self.width = width
 
 
 def get_metric_nodes(nodes):
@@ -159,7 +161,7 @@ def main(args):
 	nodes = get_metric_nodes(nodes)
 
 	# initialize particles with one particle
-	particles = [Particle(300, 1, 0.4, __DEFAULT_TTL, 1)]
+	particles = [Particle(pos=300, v=1, hue=0.4)]
 
 	last_time = time.perf_counter()
 
@@ -178,22 +180,22 @@ def main(args):
 		spawn = random.random()
 		if spawn < 0.005:
 			particles.append(
-				Particle(pos=0, v=random.uniform(-2.5, -1), hue=random.random(), ttl=__DEFAULT_TTL, mass=1)
+				Particle(pos=0, v=random.uniform(-2.5, -1), hue=random.random())
 			)
 		elif spawn >= 0.995:
 			particles.append(
-				Particle(pos=300, v=random.uniform(0.05, 0.5), hue=random.random(), ttl=__DEFAULT_TTL, mass=1)
+				Particle(pos=300, v=random.uniform(0.05, 0.5), hue=random.random())
 			)
 		web_particles = webserver.step()
 		for web_particle in web_particles:
 			if web_particle[0] is not None and web_particle[1] is not None:
 				if web_particle[2]:
 					particles.append(
-						Particle(pos=300, v=web_particle[1], hue=web_particle[0], ttl=__DEFAULT_TTL, mass=1)
+						Particle(pos=300, v=web_particle[1], hue=web_particle[0])
 					)
 				else:
 					particles.append(
-						Particle(pos=1, v=-web_particle[1], hue=web_particle[0], ttl=__DEFAULT_TTL, mass=1)
+						Particle(pos=1, v=-web_particle[1], hue=web_particle[0])
 					)
 
 		now = time.perf_counter()
@@ -238,11 +240,13 @@ def main(args):
 				velocity_based_hue = min(math.pow(abs(v) / 2, 2), 0.9)
 				velocity_based_brightness = max(math.pow(abs(v) / 2, 2), 0.1) * min(particle.ttl / 3, 1)
 				strip.add_hsv(new_pos, particle.hue, 1, velocity_based_brightness)
+
+				particles[i].pos = new_pos
+				particles[i].v = v
 				if abs(v) < 0.1:
-					new_ttl = particle.ttl - t
-					particles[i] = Particle(pos=new_pos, v=v, hue=particle.hue, ttl=new_ttl, mass=particle.mass)
+					particles[i].ttl = particle.ttl - t
 				else:
-					particles[i] = Particle(pos=new_pos, v=v, hue=particle.hue, ttl=__DEFAULT_TTL, mass=particle.mass)
+					particles[i].ttl = __DEFAULT_TTL
 
 		last_time = now
 		strip.transmit()
