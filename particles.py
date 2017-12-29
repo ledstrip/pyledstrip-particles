@@ -175,16 +175,26 @@ def main(args):
 				strip.add_hsv(key, value[1] / (max_val - min_val), 1, 0.2)
 
 		# create particle
-		spawn = random.randrange(0, 50)
-		if spawn == 0:
-			particles.append(Particle(150, random.randrange(-150, -5) / 100, random.random(), __DEFAULT_TTL, random.randrange(1, 4)))
+		spawn = random.random()
+		if spawn < 0.005:
+			particles.append(
+				Particle(pos=0, v=random.uniform(-2.5, -1), hue=random.random(), ttl=__DEFAULT_TTL, mass=1)
+			)
+		elif spawn >= 0.995:
+			particles.append(
+				Particle(pos=300, v=random.uniform(0.05, 0.5), hue=random.random(), ttl=__DEFAULT_TTL, mass=1)
+			)
 		web_particles = webserver.step()
 		for web_particle in web_particles:
 			if web_particle[0] is not None and web_particle[1] is not None:
 				if web_particle[2]:
-					particles.append(Particle(300, web_particle[1] * 2, web_particle[0], __DEFAULT_TTL, 1))
+					particles.append(
+						Particle(pos=300, v=web_particle[1], hue=web_particle[0], ttl=__DEFAULT_TTL, mass=1)
+					)
 				else:
-					particles.append(Particle(1, -web_particle[1] * 2, web_particle[0], __DEFAULT_TTL, 1))
+					particles.append(
+						Particle(pos=1, v=-web_particle[1], hue=web_particle[0], ttl=__DEFAULT_TTL, mass=1)
+					)
 
 		now = time.perf_counter()
 		particles = sorted(particles, key=lambda p: p.pos)
@@ -229,9 +239,10 @@ def main(args):
 						particle.hue, 1,
 							  max(math.pow(abs(v) / 2, 2), 0.1) * min(particle.ttl / 3, 1))
 				if abs(v) < 0.1:
-					particles[i] = Particle(new_pos, v, particle.hue, particle.ttl - t, particle.mass)
+					new_ttl = particle.ttl - t
+					particles[i] = Particle(pos=new_pos, v=v, hue=particle.hue, ttl=new_ttl, mass=particle.mass)
 				else:
-					particles[i] = Particle(new_pos, v, particle.hue, __DEFAULT_TTL, particle.mass)
+					particles[i] = Particle(pos=new_pos, v=v, hue=particle.hue, ttl=__DEFAULT_TTL, mass=particle.mass)
 
 		last_time = now
 		strip.transmit()
