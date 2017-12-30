@@ -245,7 +245,7 @@ def main(args):
 
 				particles[i].pos = new_pos
 				particles[i].v = v
-				if abs(v) < 0.1:
+				if abs(v) < 0.2:
 					particles[i].ttl = particle.ttl - t
 				else:
 					particles[i].ttl = _DEFAULT_TTL
