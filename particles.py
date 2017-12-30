@@ -8,9 +8,9 @@ import sys
 import webserver
 from pyledstrip import LedStrip
 
-__LED_PER_METER = 60
-__LED_DIST = 1 / __LED_PER_METER
-__DEFAULT_TTL = 2
+_LED_PER_METER = 60
+_LED_DIST = 1 / _LED_PER_METER
+_DEFAULT_TTL = 2
 
 
 class Particle:
@@ -21,13 +21,13 @@ class Particle:
 	mass = None
 	width = None
 
-	def __init__(self, pos, v, hue):
+	def __init__(self, pos, v, hue, ttl=_DEFAULT_TTL, radius=1):
 		self.pos = pos
 		self.v = v
 		self.hue = hue
 		self.ttl = ttl
-		self.mass = mass
-		self.width = width
+		self.radius = radius
+		self.mass = 2*radius
 
 
 def get_metric_nodes(nodes):
@@ -43,7 +43,7 @@ def get_metric_nodes(nodes):
 		dist = math.sqrt(pow(x_diff, 2) + pow(y_diff, 2))
 		dist_per_led = dist / key_dist
 		max_dist_per_led = max(dist_per_led, max_dist_per_led)
-	f = __LED_DIST / max_dist_per_led / 1.5
+	f = _LED_DIST / max_dist_per_led / 1.5
 
 	i = 0
 	for key, value in nodes.items():
@@ -53,7 +53,7 @@ def get_metric_nodes(nodes):
 
 
 def within(a, b, tolerance=1.0):
-	if not abs(a.pos - b.pos) < tolerance:
+	if not abs(a.pos - b.pos) < (a.radius + b.radius):
 		return False
 	return math.copysign(1, a.v) != math.copysign(1, b.v)
 
@@ -180,11 +180,11 @@ def main(args):
 		spawn = random.random()
 		if spawn < 0.005:
 			particles.append(
-				Particle(pos=0, v=random.uniform(-2.5, -1), hue=random.random())
+				Particle(pos=0, v=random.uniform(-2.5, -1), hue=random.random(), radius=random.uniform(0.5, 2))
 			)
 		elif spawn >= 0.995:
 			particles.append(
-				Particle(pos=300, v=random.uniform(0.05, 0.5), hue=random.random())
+				Particle(pos=300, v=random.uniform(0.05, 0.5), hue=random.random(), radius=random.uniform(0.5, 2))
 			)
 		web_particles = webserver.step()
 		for web_particle in web_particles:
@@ -219,7 +219,7 @@ def main(args):
 				next_key = key
 				if next_key >= particle.pos > prev_key:
 					height = (nodes[next_key][1] - nodes[prev_key][1])
-					radius = abs(prev_key - next_key) * __LED_DIST
+					radius = abs(prev_key - next_key) * _LED_DIST
 					break
 
 			if radius == 0:
@@ -232,21 +232,23 @@ def main(args):
 			t = now - last_time
 			v = particle.v + a * t
 
-			new_pos = particle.pos - (v * t) * __LED_PER_METER
+			new_pos = particle.pos - (v * t) * _LED_PER_METER
 
 			if not 300 >= new_pos >= 0 or particle.ttl <= 0:
 				del particles[i]
 			else:
 				velocity_based_hue = min(math.pow(abs(v) / 2, 2), 0.9)
 				velocity_based_brightness = max(math.pow(abs(v) / 2, 2), 0.1) * min(particle.ttl / 3, 1)
+				strip.add_hsv(new_pos - particle.radius, particle.hue, 1, velocity_based_brightness)
 				strip.add_hsv(new_pos, particle.hue, 1, velocity_based_brightness)
+				strip.add_hsv(new_pos + particle.radius, particle.hue, 1, velocity_based_brightness)
 
 				particles[i].pos = new_pos
 				particles[i].v = v
 				if abs(v) < 0.1:
 					particles[i].ttl = particle.ttl - t
 				else:
-					particles[i].ttl = __DEFAULT_TTL
+					particles[i].ttl = _DEFAULT_TTL
 
 		last_time = now
 		strip.transmit()
