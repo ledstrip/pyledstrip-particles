@@ -142,11 +142,11 @@ def main(args):
 				radius = 0.00001
 
 			a_slope = (9.81 * max(min(height / radius, 1), -1)) if radius is not 0 else 0
-			a_friction = math.copysign(0.01 * 9.81 * math.cos(math.asin(max(min(height / radius, 1), -1))), particle.v)
+			a_friction = math.copysign(0.01 * 9.81 * math.cos(math.asin(max(min(height / radius, 1), -1))), particle.v) * 1.01
 
 			a = a_slope - a_friction
 			t = now - last_time
-			v = particle.v + a * t
+			v = particle.v + (a - particle.v * 0.22) * t
 
 			new_pos = particle.pos - (v * t) * _LED_PER_METER
 
