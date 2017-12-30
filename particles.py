@@ -161,7 +161,7 @@ def main(args):
 	nodes = get_metric_nodes(nodes)
 
 	# initialize particles with one particle
-	particles = [Particle(pos=300, v=1, hue=0.4)]
+	particles = [Particle(pos=strip.led_count, v=1, hue=0.4)]
 
 	last_time = time.perf_counter()
 
@@ -184,14 +184,14 @@ def main(args):
 			)
 		elif spawn >= 0.995:
 			particles.append(
-				Particle(pos=300, v=random.uniform(0.05, 0.5), hue=random.random(), radius=random.uniform(0.5, 2))
+				Particle(pos=strip.led_count, v=random.uniform(0.05, 0.5), hue=random.random(), radius=random.uniform(0.5, 2))
 			)
 		web_particles = webserver.step()
 		for web_particle in web_particles:
 			if web_particle[0] is not None and web_particle[1] is not None:
 				if web_particle[2]:
 					particles.append(
-						Particle(pos=300, v=web_particle[1], hue=web_particle[0])
+						Particle(pos=strip.led_count, v=web_particle[1], hue=web_particle[0])
 					)
 				else:
 					particles.append(
@@ -234,7 +234,7 @@ def main(args):
 
 			new_pos = particle.pos - (v * t) * _LED_PER_METER
 
-			if not 300 >= new_pos >= 0 or particle.ttl <= 0:
+			if not strip.led_count >= new_pos >= 0 or particle.ttl <= 0:
 				del particles[i]
 			else:
 				velocity_based_hue = min(math.pow(abs(v) / 2, 2), 0.9)
