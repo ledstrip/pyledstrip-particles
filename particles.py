@@ -14,56 +14,56 @@ _DEFAULT_TTL = 2
 
 
 class Particle:
-	pos = None
-	v = None
-	hue = None
-	ttl = None
-	mass = None
-	width = None
+    pos = None
+    v = None
+    hue = None
+    ttl = None
+    mass = None
+    width = None
 
-	def __init__(self, pos, v, hue, ttl=_DEFAULT_TTL, radius=1):
-		self.pos = pos
-		self.v = v
-		self.hue = hue
-		self.ttl = ttl
-		self.radius = radius
-		self.mass = 2*radius
+    def __init__(self, pos, v, hue, ttl=_DEFAULT_TTL, radius=1):
+        self.pos = pos
+        self.v = v
+        self.hue = hue
+        self.ttl = ttl
+        self.radius = radius
+        self.mass = 2 * radius
 
 
 def get_metric_nodes(nodes):
-	y_values = [value[1] for value in nodes.values()]
-	k = [key for key in nodes.keys()]
-	y_max = max(y_values)
+    y_values = [value[1] for value in nodes.values()]
+    k = [key for key in nodes.keys()]
+    y_max = max(y_values)
 
-	max_dist_per_led = 0
-	for i in range(1, len(nodes)):
-		key_dist = k[i] - k[i - 1]
-		x_diff = nodes[k[i]][0] - nodes[k[i - 1]][0]
-		y_diff = nodes[k[i]][1] - nodes[k[i - 1]][1]
-		dist = math.sqrt(pow(x_diff, 2) + pow(y_diff, 2))
-		dist_per_led = dist / key_dist
-		max_dist_per_led = max(dist_per_led, max_dist_per_led)
-	f = _LED_DIST / max_dist_per_led / 1.5
+    max_dist_per_led = 0
+    for i in range(1, len(nodes)):
+        key_dist = k[i] - k[i - 1]
+        x_diff = nodes[k[i]][0] - nodes[k[i - 1]][0]
+        y_diff = nodes[k[i]][1] - nodes[k[i - 1]][1]
+        dist = math.sqrt(pow(x_diff, 2) + pow(y_diff, 2))
+        dist_per_led = dist / key_dist
+        max_dist_per_led = max(dist_per_led, max_dist_per_led)
+    f = _LED_DIST / max_dist_per_led / 1.5
 
-	i = 0
-	for key, value in nodes.items():
-		nodes[key] = (nodes[key][0] * f, (y_max - y_values[i]) * f)
-		i = i + 1
-	return nodes
+    i = 0
+    for key, value in nodes.items():
+        nodes[key] = (nodes[key][0] * f, (y_max - y_values[i]) * f)
+        i = i + 1
+    return nodes
 
 
 def within(a, b, tolerance=1.0):
-	if not abs(a.pos - b.pos) < (a.radius + b.radius):
-		return False
-	return math.copysign(1, a.v) != math.copysign(1, b.v)
+    if not abs(a.pos - b.pos) < (a.radius + b.radius):
+        return False
+    return math.copysign(1, a.v) != math.copysign(1, b.v)
 
 
 def collide(a, b):
-	# v1' = (m1*v1 + m2 * (2*v2 - v1)) / (m1 + m2)
-	# v2' = (m2*v2 + m1 * (2*v1 - v2)) / (m1 + m2)
-	v1, v2 = a.v, b.v
-	a.v = (a.mass * v1 + b.mass * (2 * v2 - v1)) / (a.mass + b.mass)
-	b.v = (b.mass * v2 + a.mass * (2 * v1 - v2)) / (a.mass + b.mass)
+    # v1' = (m1*v1 + m2 * (2*v2 - v1)) / (m1 + m2)
+    # v2' = (m2*v2 + m1 * (2*v1 - v2)) / (m1 + m2)
+    v1, v2 = a.v, b.v
+    a.v = (a.mass * v1 + b.mass * (2 * v2 - v1)) / (a.mass + b.mass)
+    b.v = (b.mass * v2 + a.mass * (2 * v1 - v2)) / (a.mass + b.mass)
 
 
 oben_gefiltert = {0: (86.0, 217.125), 1: (84.1875, 215.9375), 2: (81.348214285714278, 214.43303571428572),
@@ -253,110 +253,113 @@ oben_gefiltert = {0: (86.0, 217.125), 1: (84.1875, 215.9375), 2: (81.34821428571
                   596: (213.15625, -168.46875), 597: (216.375, -169.78125), 598: (219.4375, -170.53125),
                   599: (221.5, -170.84375)}
 
+
 def main(args):
-	strip = LedStrip(args=args)
+    strip = LedStrip(args=args)
 
-	node_dict = oben_gefiltert
+    node_dict = oben_gefiltert
 
-	nodes = collections.OrderedDict(sorted(node_dict.items()))
-	nodes = get_metric_nodes(nodes)
+    nodes = collections.OrderedDict(sorted(node_dict.items()))
+    nodes = get_metric_nodes(nodes)
 
-	# initialize particles with one particle
-	particles = [Particle(pos=strip.led_count, v=1, hue=0.4)]
+    # initialize particles with one particle
+    particles = [Particle(pos=strip.led_count, v=1, hue=0.4)]
 
-	last_time = time.perf_counter()
+    last_time = time.perf_counter()
 
-	while True:
-		strip.clear()
-		if len(sys.argv) > 1 and sys.argv[1] == 'm':
-			min_val = 5000
-			max_val = 0
-			for value in nodes.values():
-				min_val = min(value[1], min_val)
-				max_val = max(value[1], max_val)
-			for key, value in nodes.items():
-				strip.add_hsv(key, value[1] / (max_val - min_val), 1, 0.2)
+    while True:
+        strip.clear()
+        if len(sys.argv) > 1 and sys.argv[1] == 'm':
+            min_val = 5000
+            max_val = 0
+            for value in nodes.values():
+                min_val = min(value[1], min_val)
+                max_val = max(value[1], max_val)
+            for key, value in nodes.items():
+                strip.add_hsv(key, value[1] / (max_val - min_val), 1, 0.2)
 
-		# create particle
-		spawn = random.random()
-		if spawn < 0.005:
-			particles.append(
-				Particle(pos=0, v=random.uniform(-2.5, -1), hue=random.random(), radius=random.uniform(0.5, 2))
-			)
-		elif spawn >= 0.995:
-			particles.append(
-				Particle(pos=strip.led_count, v=random.uniform(0.05, 0.5), hue=random.random(), radius=random.uniform(0.5, 2))
-			)
-		web_particles = webserver.step()
-		for web_particle in web_particles:
-			if web_particle[0] is not None and web_particle[1] is not None:
-				if web_particle[2]:
-					particles.append(
-						Particle(pos=strip.led_count, v=web_particle[1], hue=web_particle[0])
-					)
-				else:
-					particles.append(
-						Particle(pos=1, v=-web_particle[1], hue=web_particle[0])
-					)
+        # create particle
+        spawn = random.random()
+        if spawn < 0.005:
+            particles.append(
+                Particle(pos=0, v=random.uniform(-2.5, -1), hue=random.random(), radius=random.uniform(0.5, 2))
+            )
+        elif spawn >= 0.995:
+            particles.append(
+                Particle(pos=strip.led_count, v=random.uniform(0.05, 0.5), hue=random.random(),
+                         radius=random.uniform(0.5, 2))
+            )
+        web_particles = webserver.step()
+        for web_particle in web_particles:
+            if web_particle[0] is not None and web_particle[1] is not None:
+                if web_particle[2]:
+                    particles.append(
+                        Particle(pos=strip.led_count, v=web_particle[1], hue=web_particle[0])
+                    )
+                else:
+                    particles.append(
+                        Particle(pos=1, v=-web_particle[1], hue=web_particle[0])
+                    )
 
-		now = time.perf_counter()
-		particles = sorted(particles, key=lambda p: p.pos)
-		for i, particle in enumerate(particles):
-			radius = 0
-			height = 0
+        now = time.perf_counter()
+        particles = sorted(particles, key=lambda p: p.pos)
+        for i, particle in enumerate(particles):
+            radius = 0
+            height = 0
 
-			# Collision detection
-			if i > 0 and i < (len(particles) - 1):
-				left = particles[i - 1]
-				right = particles[i + 1]
-				if within(left, particle):
-					collide(left, particle)
-				if within(right, particle):
-					collide(particle, right)
+            # Collision detection
+            if i > 0 and i < (len(particles) - 1):
+                left = particles[i - 1]
+                right = particles[i + 1]
+                if within(left, particle):
+                    collide(left, particle)
+                if within(right, particle):
+                    collide(particle, right)
 
-			next_key = next(iter(nodes.keys()))
-			for key in nodes.keys():
-				prev_key = next_key
-				next_key = key
-				if next_key >= particle.pos > prev_key:
-					height = (nodes[next_key][1] - nodes[prev_key][1])
-					radius = abs(prev_key - next_key) * _LED_DIST
-					break
+            next_key = next(iter(nodes.keys()))
+            for key in nodes.keys():
+                prev_key = next_key
+                next_key = key
+                if next_key >= particle.pos > prev_key:
+                    height = (nodes[next_key][1] - nodes[prev_key][1])
+                    radius = abs(prev_key - next_key) * _LED_DIST
+                    break
 
-			if radius == 0:
-				radius = 0.00001
+            if radius == 0:
+                radius = 0.00001
 
-			a_slope = (9.81 * max(min(height / radius, 1), -1)) if radius is not 0 else 0
-			a_friction = math.copysign(0.01 * 9.81 * math.cos(math.asin(max(min(height / radius, 1), -1))), particle.v) * 1.01
+            a_slope = (9.81 * max(min(height / radius, 1), -1)) if radius is not 0 else 0
+            a_friction = math.copysign(0.01 * 9.81 * math.cos(math.asin(max(min(height / radius, 1), -1))),
+                                       particle.v) * 1.01
 
-			a = a_slope - a_friction
-			t = now - last_time
-			v = particle.v + (a - particle.v * 0.22) * t
+            a = a_slope - a_friction
+            t = now - last_time
+            v = particle.v + (a - particle.v * 0.22) * t
 
-			new_pos = particle.pos - (v * t) * _LED_PER_METER
+            new_pos = particle.pos - (v * t) * _LED_PER_METER
 
-			if not strip.led_count >= new_pos >= 0 or particle.ttl <= 0:
-				del particles[i]
-			else:
-				velocity_based_hue = min(math.pow(abs(v) / 2, 2), 0.9)
-				velocity_based_brightness = max(math.pow(abs(v) / 2, 2), 0.1) * min(particle.ttl / 3, 1)
-				strip.add_hsv(new_pos - particle.radius, particle.hue, 1, velocity_based_brightness)
-				strip.add_hsv(new_pos, particle.hue, 1, velocity_based_brightness)
-				strip.add_hsv(new_pos + particle.radius, particle.hue, 1, velocity_based_brightness)
+            if not strip.led_count >= new_pos >= 0 or particle.ttl <= 0:
+                del particles[i]
+            else:
+                velocity_based_hue = min(math.pow(abs(v) / 2, 2), 0.9)
+                velocity_based_brightness = max(math.pow(abs(v) / 2, 2), 0.1) * min(particle.ttl / 3, 1)
+                strip.add_hsv(new_pos - particle.radius, particle.hue, 1, velocity_based_brightness)
+                strip.add_hsv(new_pos, particle.hue, 1, velocity_based_brightness)
+                strip.add_hsv(new_pos + particle.radius, particle.hue, 1, velocity_based_brightness)
 
-				particles[i].pos = new_pos
-				particles[i].v = v
-				if abs(v) < 0.2:
-					particles[i].ttl = particle.ttl - t
-				else:
-					particles[i].ttl = _DEFAULT_TTL
+                particles[i].pos = new_pos
+                particles[i].v = v
+                if abs(v) < 0.2:
+                    particles[i].ttl = particle.ttl - t
+                else:
+                    particles[i].ttl = _DEFAULT_TTL
 
-		last_time = now
-		strip.transmit()
-		time.sleep(0.01)
+        last_time = now
+        strip.transmit()
+        time.sleep(0.01)
 
 
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser(description='Gravity-based LED particle simulation')
-	LedStrip.add_arguments(parser)
-	main(parser.parse_args())
+    parser = argparse.ArgumentParser(description='Gravity-based LED particle simulation')
+    LedStrip.add_arguments(parser)
+    main(parser.parse_args())
